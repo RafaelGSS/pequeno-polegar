@@ -1,0 +1,32 @@
+ a:hover {
+ 	color: #e36203;
+	text-decoration: none;
+}
+
+.icon-back { float: left; }
+
+.botao {
+  text-align: center;
+  margin-top: 5em;
+}
+.botao < button,a {
+  width: 400px;
+}
+
+.user {
+	position: fixed;
+	right: 10pt;
+	top: 10px;
+	color: #fff;
+}
+
+.widget-horiz {
+  /* Display block or display grid */
+  flex-basis: 300px;
+  margin: 15px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  position: relative;
+  font-size: 15px;
+  padding: 10px;
+}
