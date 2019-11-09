@@ -9,6 +9,9 @@ class AlunosController extends Controller
 {
     protected $alunos;
 
+    /**
+     * @param \App\Alunos
+     */
     public function __construct(Aluno $alunos)
     {
       $this->middleware('auth');
@@ -38,16 +41,16 @@ class AlunosController extends Controller
      */
     public function store(Request $request)
     {
-      $dates = $request->all();
-      $dates["birth"] = date("Y-m-d", strtotime($request->input('birth')));
       $this->validate($request, $this->alunos->rules);
-      $insert = $this->alunos->create($dates);
-      if($insert){
-        return redirect()->route('alunos.index');
-      }else {
-        return abort(404, 'Erro ao inserir no banco de dados');
-      }
+      $data = $request->all();
+      $data["birth"] = date("Y-m-d", strtotime($request->input('birth')));
 
+      $inserted = $this->alunos->create($dates);
+      if($inserted){
+        return redirect()->route('alunos.index');
+      }
+      
+      return abort(404, 'Erro ao inserir no banco de dados');
     }
 
     /**
@@ -58,9 +61,8 @@ class AlunosController extends Controller
      */
     public function show($id)
     {
-      $true = true;
       $aluno = $this->alunos->find($id);
-      return view('alunos.create',compact('aluno','true'));
+      return view('alunos.create', ['aluno' => $aluno]);
     }
 
     /**
@@ -72,7 +74,7 @@ class AlunosController extends Controller
     public function edit($id)
     {
       $aluno = $this->alunos->find($id);
-      return view('alunos.create', compact('aluno'));
+      return view('alunos.create', ['aluno' => $aluno]);
     }
 
     /**
@@ -84,72 +86,64 @@ class AlunosController extends Controller
      */
     public function update(Request $request, $id)
     {
-      $dateForm = $request->all();
-
-      $aluno = $this->alunos->find($id);
       $this->validate($request, $this->alunos->rules);
+      $aluno = $this->alunos->find($id);
+      $updated = $aluno->updated($request->all());
 
-      $update = $aluno->update($dateForm);
-
-      if($update)
+      if($updated) {
         return redirect()->route('alunos.index');
-      else {
-        return redirect()->route('alunos.edit', $id);
       }
+      return redirect()->route('alunos.edit', $id);
     }
-    // In tests
+
     public function adjustPaid()
     {
-      $als = $this->alunos->all();
-      foreach ($als as $aluno){
-        $aluno["paid"] = 0;
-        $data = $aluno->toArray();
-        $aluno->update($data);
+      $alunos = $this->alunos->all();
+      foreach ($alunos as $aluno){
+        $aluno->update(['paid' => 0]);
       }
-
       return redirect()->route('alunos.index');
     }
 
+    /**
+     * Set payment true to user
+     * 
+     * @param $id
+     */
     public function paid($id)
     {
       $aluno = $this->alunos->find($id);
-      $aluno["paid"] = 1;
-      $data = $aluno->toArray();
+      $aluno->update(['paid' => 1]);
 
-      $paid = $aluno->update($data);
-
-      if($paid)
-        return redirect()->back();
-      else {
-        abort(404, "Erro inesperado!");
-      }
+      return redirect()->back();
     }
 
     public function destroy($id)
     {
-        $aluno = $this->alunos->find($id);
-        $del = $aluno->delete();
-
-        if($del){
-          return redirect()->route('alunos.index');
-        }else{
-          return redirect()->route('alunos.show', $id);
-        }
+      $aluno = $this->alunos->find($id);
+      $deleted = $aluno->delete();
+      
+      if($deleted){
+        return redirect()->route('alunos.index');
+      }
+      return redirect()->route('alunos.show', $id);
     }
 
     public function showAll()
     {
       $result = $this->alunos->orderBy('name')->get();
-      return view('alunos.showAll', compact('result'));
+      return view('alunos.showAll', ['result' => $result]);
     }
-    public function showPeriod($id)
+
+    public function showPeriod($period)
     {
-      if($id != 'manha' && $id != 'tarde'){
+      if($period != 'manha' && $period != 'tarde'){
         abort(404, 'Pagina nao encontrada');
       }
-      $titleH = "Alunos do período: ". ucwords($id);
-      $result = $this->alunos->where('period', '=', $id)->orderBy('name')->get();
-      return view('alunos.showAll', compact('result','titleH'));
+      $titleHeader = "Alunos do período: ". ucwords($id);
+      $alunos = $this->alunos->where('period', '=', $id)->orderBy('name')->get();
+
+      return view('alunos.showAll', ['result' => $alunos,'titleH' => $titleHeader]);
     }
 
     public function search()
@@ -159,17 +153,17 @@ class AlunosController extends Controller
 
     public function searchParam(Request $request)
     {
-      $this->validate($request, [
-        'method' => 'required',
-      ]);
+      $this->validate($request, ['method' => 'required', 'param' => 'required']);
+
       $dataForm = $request->only('method', 'param');
-      $titleH = "Resultados da busca por: " . ucwords($dataForm['method']);
+      $titleHeader = "Resultados da busca por: " . ucwords($dataForm['method']);
+
       if($dataForm['method'] == 'name'){
-      $result = $this->alunos->where('name', 'like', '%'. $dataForm['param'] . '%')->orderBy('name')->get();
-    } else {
-      $result = $this->alunos->where($dataForm['method'], '=', $dataForm['param'])->orderBy('name')->get();
-    }
-      return view('alunos.showAll', compact('result','titleH'));
+        $result = $this->alunos->where('name', 'like', '%'. $dataForm['param'] . '%')->orderBy('name')->get();
+      } else {
+        $result = $this->alunos->where($dataForm['method'], '=', $dataForm['param'])->orderBy('name')->get();
+      }
+      return view('alunos.showAll', ['result' => $result,'titleH' => $titleHeader]);
     }
 
 
